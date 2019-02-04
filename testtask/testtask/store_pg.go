@@ -23,7 +23,7 @@ func NewPgStore(db *sql.DB) *PgStore {
 	}
 }
 
-func (s *PgStore) Put(itemId store.ItemId, locationIds []store.LocationId) error {
+func (s *PgStore) PutContext(ctx context.Context, itemId store.ItemId, locationIds []store.LocationId) error {
 	var insertSql string
 	var valueArgs []interface{}
 	hasInsert := len(locationIds) > 0
@@ -72,7 +72,7 @@ func (s *PgStore) Put(itemId store.ItemId, locationIds []store.LocationId) error
 	})
 }
 
-func (s *PgStore) Add(locations []store.Location) error {
+func (s *PgStore) Add(ctx context.Context, locations []store.Location) error {
 	if len(locations) == 0 {
 		return nil
 	}
@@ -104,7 +104,7 @@ func (s *PgStore) Add(locations []store.Location) error {
 	})
 }
 
-func (s *PgStore) Get(itemId store.ItemId) ([]store.Location, error) {
+func (s *PgStore) GetContext(ctx context.Context, itemId store.ItemId) ([]store.Location, error) {
 	selectSql := fmt.Sprintf(`
 		SELECT 
 			l.location_id, l.location, l.coordinates::varchar
@@ -118,7 +118,8 @@ func (s *PgStore) Get(itemId store.ItemId) ([]store.Location, error) {
 		pq.QuoteIdentifier(dbSchema),
 		pq.QuoteIdentifier(dbSchema))
 
-	context, _ := context.WithTimeout(context.Background(), 100 * time.Millisecond)
+	context, cancel := context.WithTimeout(ctx, 100 * time.Millisecond)
+	defer cancel()
 	rows, err := s.db.QueryContext(context, selectSql, itemId)
 	if err != nil {
 		log.Println(err)

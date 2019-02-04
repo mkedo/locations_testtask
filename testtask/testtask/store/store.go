@@ -1,11 +1,13 @@
 package store
 
+import "context"
+
 type ItemId = int64
 type LocationId = int64
 
 type ItemLocations interface {
-	Put(itemId ItemId, locationIds []LocationId) error
-	Get(itemId ItemId) ([]Location, error)
+	PutContext(ctx context.Context, itemId ItemId, locationIds []LocationId) error
+	GetContext(ctx context.Context, itemId ItemId) ([]Location, error)
 }
 
 //type Locations interface {

@@ -34,7 +34,7 @@ func putItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
 		}
 		//TODO: если есть не уникальные LocationId то удалить дубликаты или кинуть ошибку?
 
-		err = itemLocations.Put(request.ItemId, request.LocationIds)
+		err = itemLocations.PutContext(r.Context(), request.ItemId, request.LocationIds)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Couldn't put items", http.StatusInternalServerError)
@@ -60,7 +60,7 @@ func getItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
 			http.Error(w, "Wrong ItemId format", http.StatusBadRequest)
 			return
 		}
-		locations, err := itemLocations.Get(itemId)
+		locations, err := itemLocations.GetContext(r.Context(), itemId)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Couldn't get locations", http.StatusInternalServerError)

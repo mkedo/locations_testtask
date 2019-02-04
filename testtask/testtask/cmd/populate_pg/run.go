@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"testtask"
@@ -21,7 +22,7 @@ func main() {
 	fmt.Println("Populating locations...")
 	for current := int64(1); current <= maxLocationId; current += bulkSize {
 		locations := populate.GetRandomLocations(current, current+bulkSize-1)
-		err := itemLocations.Add(locations)
+		err := itemLocations.Add(context.Background(), locations)
 		if err != nil {
 			panic(err)
 		}
@@ -29,7 +30,7 @@ func main() {
 	fmt.Println("Populating item-location links...")
 	for current := int64(1); current <= 500000; current++ {
 		locIds := populate.GetRandomLocationIds(1, maxLocationId)
-		err := itemLocations.Put(store.ItemId(current), locIds)
+		err := itemLocations.PutContext(context.Background(), store.ItemId(current), locIds)
 		if err != nil {
 			panic(err)
 		}

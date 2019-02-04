@@ -1,6 +1,7 @@
 package testtask
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/tarantool/go-tarantool"
 	"log"
@@ -17,7 +18,7 @@ func NewTntStore(con *tarantool.Connection) *TntStore {
 	}
 }
 
-func (s *TntStore) Put(itemId store.ItemId, locationIds []store.LocationId) error {
+func (s *TntStore) PutContext(ctx context.Context, itemId store.ItemId, locationIds []store.LocationId) error {
 	var ids = []int64(locationIds)
 	_, err := s.con.CallAsync("put_item_locations", []interface{}{
 		itemId,
@@ -29,7 +30,7 @@ func (s *TntStore) Put(itemId store.ItemId, locationIds []store.LocationId) erro
 	return nil
 }
 
-func (s *TntStore) Get(itemId store.ItemId) ([]store.Location, error) {
+func (s *TntStore) GetContext(ctx context.Context, itemId store.ItemId) ([]store.Location, error) {
 	var locations = make([]store.Location, 0)
 	var locationsStrArray [][]string
 	err := s.con.CallTyped("get_item_locations", []interface{}{itemId}, &locationsStrArray)
@@ -49,7 +50,7 @@ func (s *TntStore) Get(itemId store.ItemId) ([]store.Location, error) {
 	return locations, nil
 }
 
-func (s *TntStore) Add(locations []store.Location) error {
+func (s *TntStore) Add(ctx context.Context, locations []store.Location) error {
 	if len(locations) == 0 {
 		return nil
 	}

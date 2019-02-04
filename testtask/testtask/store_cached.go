@@ -1,6 +1,9 @@
 package testtask
 
-import "testtask/store"
+import (
+	"context"
+	"testtask/store"
+)
 
 type CachedStore struct {
 	pg    *PgStore
@@ -16,17 +19,17 @@ func NewCachedStore(config *CachedStoreOptions) *CachedStore {
 	return &CachedStore{pg: config.PgStore, cache: config.ItemLocationCache}
 }
 
-func (s *CachedStore) Put(itemId store.ItemId, locationIds []store.LocationId) error {
-	return s.pg.Put(itemId, locationIds)
+func (s *CachedStore) PutContext(ctx context.Context, itemId store.ItemId, locationIds []store.LocationId) error {
+	return s.pg.PutContext(ctx, itemId, locationIds)
 }
 
-func (s *CachedStore) Get(itemId store.ItemId) ([]store.Location, error) {
+func (s *CachedStore) GetContext(ctx context.Context, itemId store.ItemId) ([]store.Location, error) {
 	locations, err := s.cache.Get(itemId)
 	if locations != nil && err == nil {
 		return locations, nil
 	}
 
-	locations, err = s.pg.Get(itemId)
+	locations, err = s.pg.GetContext(ctx, itemId)
 	if err != nil {
 		return nil, err
 	}
