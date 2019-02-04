@@ -1,12 +1,14 @@
 package testtask
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/lib/pq"
 	"log"
 	"strings"
 	"testtask/store"
+	"time"
 )
 
 const dbSchema = "testtask"
@@ -116,8 +118,8 @@ func (s *PgStore) Get(itemId store.ItemId) ([]store.Location, error) {
 		pq.QuoteIdentifier(dbSchema),
 		pq.QuoteIdentifier(dbSchema))
 
-
-	rows, err := s.db.Query(selectSql, itemId)
+	context, _ := context.WithTimeout(context.Background(), 100 * time.Millisecond)
+	rows, err := s.db.QueryContext(context, selectSql, itemId)
 	if err != nil {
 		log.Println(err)
 		return []store.Location{}, err
