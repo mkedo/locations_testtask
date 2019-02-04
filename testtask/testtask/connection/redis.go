@@ -13,9 +13,9 @@ func GetRedisConnection() *redis.Client {
 		Addr:     host,
 		Password: password,
 		DB:       0,
-		DialTimeout: 10 * time.Millisecond,
-		ReadTimeout: 10 * time.Millisecond,
-		WriteTimeout: 10 * time.Millisecond,
+		DialTimeout: 50 * time.Millisecond,
+		ReadTimeout: 100 * time.Millisecond,
+		WriteTimeout: 100 * time.Millisecond,
 	})
 	//if err := client.Ping().Err(); err != nil {
 	//	panic(err)

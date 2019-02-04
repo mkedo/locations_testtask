@@ -125,7 +125,7 @@ Percentage of the requests served within a certain time (ms)
 ```
 
 
-postgres + redis
+postgres + redis (cache)
 --
 
 Чтение
@@ -253,6 +253,136 @@ Percentage of the requests served within a certain time (ms)
   98%  18015
   99%  19027
  100%  26981 (longest request)
+```
+
+postgres + redis (persistence)
+--
+
+Чтение
+
+```
+ab -k -c 100 -n 2000 127.0.0.1:8080/item/5/locations
+
+This is ApacheBench, Version 2.3 <$Revision: 1638069 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient)
+Completed 200 requests
+Completed 400 requests
+Completed 600 requests
+Completed 800 requests
+Completed 1000 requests
+Completed 1200 requests
+Completed 1400 requests
+Completed 1600 requests
+Completed 1800 requests
+Completed 2000 requests
+Finished 2000 requests
+
+
+Server Software:
+Server Hostname:        127.0.0.1
+Server Port:            8080
+
+Document Path:          /item/5/locations
+Document Length:        2450 bytes
+
+Concurrency Level:      100
+Time taken for tests:   1.928 seconds
+Complete requests:      2000
+Failed requests:        0
+Keep-Alive requests:    0
+Total transferred:      5094000 bytes
+HTML transferred:       4900000 bytes
+Requests per second:    1037.22 [#/sec] (mean)
+Time per request:       96.412 [ms] (mean)
+Time per request:       0.964 [ms] (mean, across all concurrent requests)
+Transfer rate:          2579.87 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.4      1      12
+Processing:     6   93  52.1     79     371
+Waiting:        5   87  52.5     74     369
+Total:          6   93  52.2     80     372
+ERROR: The median and mean for the initial connection time are more than twice the standard
+       deviation apart. These results are NOT reliable.
+
+Percentage of the requests served within a certain time (ms)
+  50%     80
+  66%    109
+  75%    126
+  80%    135
+  90%    160
+  95%    183
+  98%    229
+  99%    262
+ 100%    372 (longest request)
+
+```
+
+Запись
+
+```
+ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/item/5/locations
+
+This is ApacheBench, Version 2.3 <$Revision: 1638069 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient)
+Completed 200 requests
+Completed 400 requests
+Completed 600 requests
+Completed 800 requests
+Completed 1000 requests
+Completed 1200 requests
+Completed 1400 requests
+Completed 1600 requests
+Completed 1800 requests
+Completed 2000 requests
+Finished 2000 requests
+
+
+Server Software:
+Server Hostname:        127.0.0.1
+Server Port:            8080
+
+Document Path:          /item/5/locations
+Document Length:        9 bytes
+
+Concurrency Level:      100
+Time taken for tests:   1.050 seconds
+Complete requests:      2000
+Failed requests:        0
+Total transferred:      250000 bytes
+Total body sent:        386000
+HTML transferred:       18000 bytes
+Requests per second:    1904.59 [#/sec] (mean)
+Time per request:       52.505 [ms] (mean)
+Time per request:       0.525 [ms] (mean, across all concurrent requests)
+Transfer rate:          232.49 [Kbytes/sec] received
+                        358.97 kb/s sent
+                        591.47 kb/s total
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.4      0       1
+Processing:     2   51   7.4     52      72
+Waiting:        1   33  13.1     36      58
+Total:          2   51   7.3     52      72
+
+Percentage of the requests served within a certain time (ms)
+  50%     52
+  66%     53
+  75%     54
+  80%     55
+  90%     57
+  95%     57
+  98%     59
+  99%     61
+ 100%     72 (longest request)
 ```
 
 

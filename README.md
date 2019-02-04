@@ -5,7 +5,12 @@
 
 или
 
-```docker-compose up -f docker-compose.pgredis.yml``` (postgres + redis)
+```docker-compose up -f docker-compose.pgredis.yml``` (postgres + redis как кеш)
+
+или
+
+```docker-compose up -f docker-compose.redis_persistent.yml``` (postgres + redis как хранилище)
+
 
 Основные файлы и директории
 --
@@ -17,13 +22,15 @@
 
 Команды
 --
-```testtask/cmd/pg``` веб-сервер (postgres + redis)
+```testtask/cmd/pg``` веб-сервер (postgres + redis в качестве кеша)
+
+```testtask/cmd/redis_persistent``` веб-сервер (postgres + redis в качестве постоянного хранилища)
 
 ```testtask/cmd/tarantool``` веб-сервер (tarantool + vinyl)
 
 ```testtask/cmd/populate_tarantool``` наполнить случайными данными tarantool
 
-```testtask/cmd/populate_pg``` наполнить случайными данными postgres
+```testtask/cmd/populate_pg``` наполнить случайными данными (postgres + redis в качестве кеша)
 
 Методы
 ---

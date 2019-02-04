@@ -1,0 +1,27 @@
+version: '2.0'
+services:
+  redis_persistent:
+    image: "redis:alpine"
+    expose:
+      - "6379"
+    volumes:
+      - ./redis_persistent/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+  postgres:
+    build: ./postgres
+    ports:
+      - "5432:5432"
+    expose:
+      - "5432"
+  testtask_service:
+    build: ./testtask
+    command: ["go", "run", "testtask/cmd/redis_persistent"]
+    ports:
+      - "8080:8080"
+    links:
+      - "redis_persistent"
+      - "postgres"
+    environment:
+        - REDIS_ADDR=redis_persistent:6379
+        - REDIS_PASSWORD=
+        - PG_DSN=host=postgres port=5432 user=postgres dbname=postgres sslmode=disable

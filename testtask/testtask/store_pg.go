@@ -118,15 +118,20 @@ func (s *PgStore) GetContext(ctx context.Context, itemId store.ItemId) ([]store.
 		pq.QuoteIdentifier(dbSchema),
 		pq.QuoteIdentifier(dbSchema))
 
-	context, cancel := context.WithTimeout(ctx, 100 * time.Millisecond)
+	context, cancel := context.WithTimeout(ctx, 1000 * time.Millisecond)
 	defer cancel()
+	//context := context.Background()
 	rows, err := s.db.QueryContext(context, selectSql, itemId)
 	if err != nil {
 		log.Println(err)
 		return []store.Location{}, err
 	}
 	defer rows.Close()
-	var locations = make([]store.Location, 0)
+	return FetchLocations(rows)
+}
+
+func FetchLocations(rows *sql.Rows) ([]store.Location, error) {
+	locations := make([]store.Location, 0)
 	for rows.Next() {
 		var location store.Location
 		var rawCoordinates string
@@ -145,6 +150,7 @@ func (s *PgStore) GetContext(ctx context.Context, itemId store.ItemId) ([]store.
 	}
 	return locations, nil
 }
+
 
 func transact(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
 	tx, err := db.Begin()
