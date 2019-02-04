@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"testtask/store"
 )
@@ -71,7 +72,11 @@ func getItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
 }
 
 func ServeStore(itemLocations store.ItemLocations) error {
-	addr := ":8080"
+	port, ok := os.LookupEnv("PORT")
+	if !ok {
+		port = "8080"
+	}
+	addr := fmt.Sprintf(":%s", port)
 	//http.Handle("/findLocation", findLocationHandler())
 	http.Handle("/putItemLocations", putItemLocationsHandler(itemLocations))
 	http.Handle("/getItemLocations", getItemLocationsHandler(itemLocations))
