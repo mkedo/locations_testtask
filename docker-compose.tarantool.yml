@@ -1,0 +1,19 @@
+version: '2.0'
+services:
+  tarantool:
+    build: ./tarantool
+    ports:
+      - "3311:3311"
+    expose:
+      - "3311"
+
+  testtask_service:
+    build: ./testtask
+    command: ["go", "run", "testtask/cmd/tarantool"]
+    ports:
+      - "8080:8080"
+    links:
+      - "tarantool"
+    environment:
+        - TARANTOOL_USER=guest
+        - TARANTOOL_ADDR=tarantool:3311
