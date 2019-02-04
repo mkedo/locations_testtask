@@ -122,6 +122,7 @@ func (s *PgStore) Get(itemId store.ItemId) ([]store.Location, error) {
 		log.Println(err)
 		return []store.Location{}, err
 	}
+	defer rows.Close()
 	var locations = make([]store.Location, 0)
 	for rows.Next() {
 		var location store.Location
