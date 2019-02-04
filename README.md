@@ -1,4 +1,4 @@
-Запуск веб-сервера
+Запуск сервиса
 --
 
 ```docker-compose up -f docker-compose.tarantool.yml``` (tarantool + vinyl)
@@ -7,11 +7,13 @@
 
 ```docker-compose up -f docker-compose.pgredis.yml``` (postgres + redis)
 
-Схемы
+Основные файлы и директории
 --
-PostgreSQL ```postgres/init.sql```
+```testtask/testtask``` исходный код сервиса
 
-Tarantool ```tarantool/app.lua```
+```postgres/init.sql``` схема PostgreSQL
+
+```tarantool/app.lua``` схема Tarantool
 
 Команды
 --
