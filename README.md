@@ -9,7 +9,7 @@
 
 или
 
-```docker-compose up -f docker-compose.redis_persistent.yml``` (postgres + redis как хранилище)
+```docker-compose up -f docker-compose.redis_persistent.yml``` (postgres + redis как постоянное хранилище)
 
 
 Основные файлы и директории
