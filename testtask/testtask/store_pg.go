@@ -56,13 +56,13 @@ func (s *PgStore) PutContext(ctx context.Context, itemId store.ItemId, locationI
 		pq.QuoteIdentifier("item_id"))
 
 	return transact(s.db, func(tx *sql.Tx) error {
-		_, err := s.db.Exec(deleteSql, itemId)
+		_, err := tx.Exec(deleteSql, itemId)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
 		if hasInsert {
-			_, err = s.db.Exec(insertSql, valueArgs...)
+			_, err = tx.Exec(insertSql, valueArgs...)
 			if err != nil {
 				log.Println(err)
 				return err
@@ -95,7 +95,7 @@ func (s *PgStore) Add(ctx context.Context, locations []store.Location) error {
 		pq.QuoteIdentifier(dbSchema),
 		strings.Join(valueStrings, ","))
 	return transact(s.db, func(tx *sql.Tx) error {
-		_, err := s.db.Exec(insertSql, valueArgs...)
+		_, err := tx.Exec(insertSql, valueArgs...)
 		if err != nil {
 			log.Println(err)
 			return err
