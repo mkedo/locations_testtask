@@ -3,7 +3,7 @@ tarantool + vinyl
 Чтение
 
 ```
-ab -k -c 100 -n 2000 127.0.0.1:8080/getItemLocations?ItemId=5
+ab -k -c 100 -n 2000 127.0.0.1:8080/item/5/locations
 
 This is ApacheBench, Version 2.3 <$Revision: 1638069 $>
 Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
@@ -27,7 +27,7 @@ Server Software:
 Server Hostname:        127.0.0.1
 Server Port:            8080
 
-Document Path:          /getItemLocations?ItemId=5
+Document Path:          /item/5/locations
 Document Length:        2448 bytes
 
 Concurrency Level:      100
@@ -64,7 +64,7 @@ Percentage of the requests served within a certain time (ms)
 Запись
 
 ```
-ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/putItemLocations
+ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/item/5/locations
 
 This is ApacheBench, Version 2.3 <$Revision: 1638069 $>
 Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
@@ -88,7 +88,7 @@ Server Software:
 Server Hostname:        127.0.0.1
 Server Port:            8080
 
-Document Path:          /putItemLocations
+Document Path:          /item/5/locations
 Document Length:        9 bytes
 
 Concurrency Level:      100
@@ -195,7 +195,7 @@ Percentage of the requests served within a certain time (ms)
 Запись
 
 ```
-ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/putItemLocations
+ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/item/5/locations
 
 This is ApacheBench, Version 2.3 <$Revision: 1638069 $>
 Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
@@ -219,7 +219,7 @@ Server Software:
 Server Hostname:        127.0.0.1
 Server Port:            8080
 
-Document Path:          /putItemLocations
+Document Path:          /item/5/locations
 Document Length:        9 bytes
 
 Concurrency Level:      100

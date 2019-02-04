@@ -3,6 +3,7 @@ package testtask
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
@@ -16,26 +17,36 @@ func findLocationHandler() http.Handler {
 	})
 }
 
+func getItemId(r *http.Request) (int64, error) {
+	vars := mux.Vars(r)
+	itemIdStr := vars["ItemId"]
+	itemId, err := strconv.ParseInt(itemIdStr, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return itemId, nil
+}
+
 func putItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
 	type putItemLocationRequest struct {
-		ItemId      int64
 		LocationIds []int64
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			http.Error(w, "POST required", http.StatusBadRequest)
+		itemId, err := getItemId(r)
+		if err != nil {
+			http.Error(w, "Wrong ItemId format", http.StatusBadRequest)
 			return
 		}
 		var request putItemLocationRequest
 
-		err := json.NewDecoder(r.Body).Decode(&request)
-		if err != nil || request.ItemId == 0 {
+		err = json.NewDecoder(r.Body).Decode(&request)
+		if err != nil || itemId == 0 {
 			http.Error(w, "Wrong request format", http.StatusBadRequest)
 			return
 		}
 		//TODO: если есть не уникальные LocationId то удалить дубликаты или кинуть ошибку?
 
-		err = itemLocations.PutContext(r.Context(), request.ItemId, request.LocationIds)
+		err = itemLocations.PutContext(r.Context(), itemId, request.LocationIds)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Couldn't put items", http.StatusInternalServerError)
@@ -47,16 +58,7 @@ func putItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
 
 func getItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			http.Error(w, "GET required", http.StatusBadRequest)
-			return
-		}
-		itemIdStr, ok := r.URL.Query()["ItemId"]
-		if !ok || len(itemIdStr[0]) < 1 {
-			http.Error(w, "ItemId required", http.StatusBadRequest)
-			return
-		}
-		itemId, err := strconv.ParseInt(itemIdStr[0], 10, 64)
+		itemId, err := getItemId(r)
 		if err != nil {
 			http.Error(w, "Wrong ItemId format", http.StatusBadRequest)
 			return
@@ -77,9 +79,11 @@ func ServeStore(itemLocations store.ItemLocations) error {
 		port = "8080"
 	}
 	addr := fmt.Sprintf(":%s", port)
-	//http.Handle("/findLocation", findLocationHandler())
-	http.Handle("/putItemLocations", putItemLocationsHandler(itemLocations))
-	http.Handle("/getItemLocations", getItemLocationsHandler(itemLocations))
+
+	r := mux.NewRouter()
+	r.Handle("/item/{ItemId}/locations", getItemLocationsHandler(itemLocations)).Methods("GET")
+	r.Handle("/item/{ItemId}/locations", putItemLocationsHandler(itemLocations)).Methods("POST")
+	//r.Handle("/findLocation", findLocationHandler()).Methods("GET")
 	log.Printf("Serving at %s\n", addr)
-	return http.ListenAndServe(addr, nil)
+	return http.ListenAndServe(addr, r)
 }
