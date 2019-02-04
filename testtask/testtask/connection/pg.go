@@ -12,6 +12,7 @@ func GetPgConnection() *sql.DB {
 	if err != nil {
 		panic(err)
 	}
+	db.SetMaxOpenConns(4)
 	//if err := db.Ping(); err != nil {
 	//	panic(err)
 	//}
