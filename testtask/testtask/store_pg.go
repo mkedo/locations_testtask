@@ -146,6 +146,9 @@ func FetchLocations(rows *sql.Rows) ([]store.Location, error) {
 			locations = append(locations, location)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return locations, err
+	}
 	return locations, nil
 }
 
