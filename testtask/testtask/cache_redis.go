@@ -13,10 +13,12 @@ type RedisCache struct {
 	client *redis.Client
 }
 
+// Промежуточная структура для сериализации/десереализации.
 type locationCollection struct {
 	Locations []store.Location
 }
 
+// Кеш на Redis, хранящий результаты получения Location для объявлений.
 func NewRedisCache(client *redis.Client) *RedisCache {
 	return &RedisCache{
 		client: client,
@@ -59,6 +61,8 @@ func (l locationCollection) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// Формирует имя ключа который указывает где хранится массив Location
+// для указанного объявления.
 func formatCacheKey(itemId store.ItemId) string {
 	return fmt.Sprintf("item:%v:locations", itemId)
 }

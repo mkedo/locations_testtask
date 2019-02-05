@@ -15,6 +15,9 @@ type CachedStoreOptions struct {
 	ItemLocationCache ItemLocationCache
 }
 
+// Кеширующее хранилище.
+// Если информация по адресам объявления есть в кеше, то она выдается из кеша.
+// Если информации нет в кеше, то данные запрашиваются из хранилища на postgres.
 func NewCachedStore(config *CachedStoreOptions) *CachedStore {
 	return &CachedStore{pg: config.PgStore, cache: config.ItemLocationCache}
 }

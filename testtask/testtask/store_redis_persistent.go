@@ -18,6 +18,7 @@ type PgRedisPersistent struct {
 	redis *redis.Client
 }
 
+// Промежуточная структура для сериализации/десереализации идентификаторов адресов
 type redisLocationIds struct {
 	ids []store.LocationId
 }
@@ -88,6 +89,8 @@ func (s *PgRedisPersistent) GetContext(ctx context.Context, itemId store.ItemId)
 	return FetchLocations(rows)
 }
 
+// Формирует имя ключа который указывает где хранятся идентификаторы адресов
+// для указанного объявления.
 func formatKey(itemId store.ItemId) string {
 	return fmt.Sprintf("item:%v:location_ids", itemId)
 }

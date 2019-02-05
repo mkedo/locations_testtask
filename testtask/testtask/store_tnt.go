@@ -12,6 +12,8 @@ type TntStore struct {
 	con *tarantool.Connection
 }
 
+// Хранилище в БД tarantool.
+// Location, и связь с объявлениями хранятся в самой БД.
 func NewTntStore(con *tarantool.Connection) *TntStore {
 	return &TntStore{
 		con: con,

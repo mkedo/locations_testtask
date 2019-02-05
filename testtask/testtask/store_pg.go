@@ -19,6 +19,8 @@ type PgStore struct {
 	db *sql.DB
 }
 
+// Хранилище в БД postgres.
+// Адреса и связь с объявлениями хранятся в самой БД.
 func NewPgStore(db *sql.DB) *PgStore {
 	return &PgStore{
 		db: db,
@@ -132,6 +134,9 @@ func (s *PgStore) GetContext(ctx context.Context, itemId store.ItemId) ([]store.
 	return FetchLocations(rows)
 }
 
+// Конвертирует *sql.Rows в []store.Location.
+// В запросе, первыми 3 полями, должны быть выбраны следующие поля (порядок важен):
+//     location_id, location, coordinates::varchar
 func FetchLocations(rows *sql.Rows) ([]store.Location, error) {
 	locations := make([]store.Location, 0)
 	for rows.Next() {
@@ -152,6 +157,8 @@ func FetchLocations(rows *sql.Rows) ([]store.Location, error) {
 	return locations, nil
 }
 
+// Выполняет функцию txFunc внутри транзакции.
+// Откатывает транзакцию в случае ошибки, коммитит в случае успеха.
 func transact(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -176,6 +183,8 @@ func transact(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
 	return err
 }
 
+// Промежуточная структура чтобы конвертировать координату
+// в формат понятный postgres и обратно.
 type pgCoordinates store.Coordinates
 
 func (c pgCoordinates) Value() (driver.Value, error) {

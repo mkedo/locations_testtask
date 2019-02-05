@@ -5,6 +5,7 @@ import "context"
 type ItemId = int64
 type LocationId = int64
 
+// Хранилище привязанных к объявлению адресов.
 type ItemLocations interface {
 	PutContext(ctx context.Context, itemId ItemId, locationIds []LocationId) error
 	GetContext(ctx context.Context, itemId ItemId) ([]Location, error)
@@ -20,7 +21,7 @@ type Coordinates struct {
 }
 
 type Location struct {
-	ID          LocationId  `json:"ID"`
-	Location    string      `json:"Location"`
-	Coordinates Coordinates `json:"Coordinates"`
+	ID          LocationId  `json:"ID"`          // идентификатор локации/адреса
+	Location    string      `json:"Location"`    // адрес
+	Coordinates Coordinates `json:"Coordinates"` // координаты связанные с этим адресом
 }

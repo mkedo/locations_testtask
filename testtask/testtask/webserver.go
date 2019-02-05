@@ -16,7 +16,7 @@ func findLocationHandler() http.Handler {
 		http.Error(w, "To be implemented", http.StatusNotFound)
 	})
 }
-
+// Парсит параметр с id объявления.
 func getItemId(r *http.Request) (int64, error) {
 	vars := mux.Vars(r)
 	itemIdStr := vars["ItemId"]
@@ -73,6 +73,7 @@ func getItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
 	})
 }
 
+// Запустить веб-север с заданным хранилищем.
 func ServeStore(itemLocations store.ItemLocations) error {
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
