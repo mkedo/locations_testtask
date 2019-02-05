@@ -3,6 +3,8 @@ package testtask
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"errors"
 	"fmt"
 	"github.com/lib/pq"
 	"log"
@@ -86,7 +88,7 @@ func (s *PgStore) Add(ctx context.Context, locations []store.Location) error {
 		paramCount = paramCount + 3
 		valueArgs = append(valueArgs, location.ID)
 		valueArgs = append(valueArgs, location.Location)
-		valueArgs = append(valueArgs, formatCoordinates(&location.Coordinates))
+		valueArgs = append(valueArgs, pgCoordinates(location.Coordinates))
 	}
 	insertSql := fmt.Sprintf(`
 		INSERT INTO %s.locations (location_id, location, coordinates)
@@ -118,7 +120,7 @@ func (s *PgStore) GetContext(ctx context.Context, itemId store.ItemId) ([]store.
 		pq.QuoteIdentifier(dbSchema),
 		pq.QuoteIdentifier(dbSchema))
 
-	context, cancel := context.WithTimeout(ctx, 1000 * time.Millisecond)
+	context, cancel := context.WithTimeout(ctx, 1000*time.Millisecond)
 	defer cancel()
 	//context := context.Background()
 	rows, err := s.db.QueryContext(context, selectSql, itemId)
@@ -134,23 +136,18 @@ func FetchLocations(rows *sql.Rows) ([]store.Location, error) {
 	locations := make([]store.Location, 0)
 	for rows.Next() {
 		var location store.Location
-		var rawCoordinates string
+		var rawCoordinates pgCoordinates
 		err := rows.Scan(&location.ID, &location.Location, &rawCoordinates)
 		if err != nil {
 			log.Println(err)
 			return []store.Location{}, err
 		} else {
-			coordinates, err := scanCoordinates(rawCoordinates)
-			if err == nil {
-				location.Coordinates = coordinates
-				locations = append(locations, location)
-			}
-
+			location.Coordinates = store.Coordinates(rawCoordinates)
+			locations = append(locations, location)
 		}
 	}
 	return locations, nil
 }
-
 
 func transact(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
 	tx, err := db.Begin()
@@ -158,7 +155,7 @@ func transact(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
 		return err
 	}
 
-	_ ,err = tx.Exec("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+	_, err = tx.Exec("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
 	if err != nil {
 		return err
 	}
@@ -176,17 +173,28 @@ func transact(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
 	return err
 }
 
-func scanCoordinates(str string) (store.Coordinates, error) {
-	var x, y float64
-	_, err := fmt.Sscanf(str, "(%e,%e)", &x, &y)
-	if err != nil {
-		return store.Coordinates{}, err
+type pgCoordinates store.Coordinates
+
+func (c pgCoordinates) Value() (driver.Value, error) {
+	return fmt.Sprintf("(%f,%f)", c.X, c.Y), nil
+}
+
+func (c *pgCoordinates) Scan(src interface{}) error {
+	var source string
+	switch src.(type) {
+	case string:
+		source = src.(string)
+	default:
+		return errors.New("Incompatible type for pgCoordinates")
 	}
-	return store.Coordinates{
+	var x, y float64
+	_, err := fmt.Sscanf(source, "(%e,%e)", &x, &y)
+	if err != nil {
+		return err
+	}
+	*c = pgCoordinates{
 		X: x,
 		Y: y,
-	}, nil
-}
-func formatCoordinates(coordinates *store.Coordinates) string {
-	return fmt.Sprintf("(%f,%f)", coordinates.X, coordinates.Y)
+	}
+	return nil
 }
