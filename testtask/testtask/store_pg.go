@@ -9,6 +9,7 @@ import (
 	"github.com/lib/pq"
 	"log"
 	"strings"
+	"sync"
 	"testtask/store"
 	"time"
 )
@@ -16,14 +17,16 @@ import (
 const dbSchema = "testtask"
 
 type PgStore struct {
-	db *sql.DB
+	db          *sql.DB
+	insertMutex *sync.Mutex
 }
 
 // Хранилище в БД postgres.
 // Адреса и связь с объявлениями хранятся в самой БД.
 func NewPgStore(db *sql.DB) *PgStore {
 	return &PgStore{
-		db: db,
+		db:          db,
+		insertMutex: &sync.Mutex{},
 	}
 }
 
@@ -59,6 +62,10 @@ func (s *PgStore) PutContext(ctx context.Context, itemId store.ItemId, locationI
 		pq.QuoteIdentifier(dbSchema),
 		pq.QuoteIdentifier("item_id"))
 
+	// записывам однопоточно, чтобы избежать serialize error
+	// + это дает равномерную нагрузку
+	s.insertMutex.Lock()
+	defer s.insertMutex.Unlock()
 	return transact(s.db, func(tx *sql.Tx) error {
 		_, err := tx.Exec(deleteSql, itemId)
 		if err != nil {
