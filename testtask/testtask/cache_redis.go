@@ -33,29 +33,29 @@ func (r *RedisCache) Put(itemId store.ItemId, locations []store.Location) error 
 
 func (r *RedisCache) Get(itemId store.ItemId) ([]store.Location, error) {
 	key := formatCacheKey(itemId)
-	locationsString, err := r.client.Get(key).Result()
+	var locations locationCollection
+	err := r.client.Get(key).Scan(&locations)
 	if err == redis.Nil {
-		return nil, nil
+		return nil, ItemLocationCacheMiss
 	} else if err != nil {
 		log.Println(err)
 		return nil, err
 	} else {
-		var locations locationCollection
-		if err := locations.UnmarshalBinary([]byte(locationsString)); err != nil {
-			// Возможно в кеше старая версия?
-			return nil, err
-		} else {
-			return locations.Locations, nil
-		}
+		return locations.Locations, nil
 	}
+}
+
+func (r *RedisCache) Invalidate(itemId store.ItemId) error {
+	key := formatCacheKey(itemId)
+	return r.client.Del(key).Err()
 }
 
 func (l locationCollection) MarshalBinary() ([]byte, error) {
 	return json.Marshal(l)
 }
 
-func (l locationCollection) UnmarshalBinary(data []byte) error {
-	if err := json.Unmarshal(data, &l); err != nil {
+func (l *locationCollection) UnmarshalBinary(data []byte) error {
+	if err := json.Unmarshal(data, l); err != nil {
 		return err
 	}
 	return nil
