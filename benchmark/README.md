@@ -1,97 +1,20 @@
-| Архитектура | Чтение 100%,мс | Запись 100%,мс |
+| Архитектура | Чтение rps (99%) | Запись rps (99%) |
 |---|---|----|
-|tarantool + vinyl | 57 | 56 | 
-|postgres + redis (cache) | 60 | 933 |
-|postgres (no cache) | 810 | 760 |
-|postgres + redis (persistence) | 372 | 72 |
+|tarantool + vinyl | 1892 (57ms) | 1890 (56ms) | 
+|postgres + redis (cache) | 1850 (59ms) | 658 (1185ms) |
+|postgres (no cache) | 1493 (550ms) | 621 (1168ms) |
+|postgres + redis (persistence) | 1037 (262ms) | 1904 (61ms) |
 
 - Запись на **postgres** медленнее из-за бОльших накладных расходов: как минимум
 проверка конститентности и парсинг SQL-запроса. 
-К тому же запись происходит в однопоточном режиме,
- чтобы избежать чрезмерного количества ошибок сериализации 
-(```ab``` делает множество конкурентных запросов к одному объявлению. 
-По идее, одно объявление так часто не обновляют и такое должно случатся намного реже.
- Есть место для оптимизации).
-
-
-Запись в многопоточном режиме (со случайными id объявлений)
-```
-Concurrency Level:      100
-Time taken for tests:   4.212 seconds
-Complete requests:      3000
-Failed requests:        0
-Total transferred:      375000 bytes
-Total body sent:        579000
-HTML transferred:       27000 bytes
-Requests per second:    712.21 [#/sec] (mean)
-Time per request:       140.408 [ms] (mean)
-Time per request:       1.404 [ms] (mean, across all concurrent requests)
-Transfer rate:          86.94 [Kbytes/sec] received
-                        134.23 kb/s sent
-                        221.17 kb/s total
-
-Connection Times (ms)
-              min  mean[+/-sd] median   max
-Connect:        0    0   0.5      0       4
-Processing:     5  137 338.8     45    3488
-Waiting:        5  137 338.8     44    3488
-Total:          5  137 338.8     45    3488
-
-Percentage of the requests served within a certain time (ms)
-  50%     45
-  66%     81
-  75%    116
-  80%    142
-  90%    264
-  95%    450
-  98%   1257
-  99%   2103
- 100%   3488 (longest request)
-```
-
-
-Запись в однопоточном (со случайными id объявлений)
-```
-Concurrency Level:      100
-Time taken for tests:   10.093 seconds
-Complete requests:      3000
-Failed requests:        0
-Total transferred:      375000 bytes
-Total body sent:        579000
-HTML transferred:       27000 bytes
-Requests per second:    297.25 [#/sec] (mean)
-Time per request:       336.419 [ms] (mean)
-Time per request:       3.364 [ms] (mean, across all concurrent requests)
-Transfer rate:          36.29 [Kbytes/sec] received
-                        56.02 kb/s sent
-                        92.31 kb/s total
-
-Connection Times (ms)
-              min  mean[+/-sd] median   max
-Connect:        0    0   0.5      0       3
-Processing:    10  328  74.9    286     457
-Waiting:       10  328  75.0    285     457
-Total:         10  329  75.0    286     457
-
-Percentage of the requests served within a certain time (ms)
-  50%    286
-  66%    394
-  75%    415
-  80%    421
-  90%    428
-  95%    432
-  98%    438
-  99%    443
- 100%    457 (longest request)
-```
-
 
 - В связке **postgres + redis (cache)**, по сути, тестируется скорость чтения из **redis**,
 т.к ```ab``` обращается только к одному объявлению.
 Скорость чтения будет зависеть от попадания в кеш.
 
 - Чтение из **postgres** медленнее, т.к **postgres** приходится пройтись по 2 индексам 
-в item_locations и locations, и, возможно, считывать данные с диска.
+в item_locations и locations, и сделать JOIN.
+Возможно денормализация поможет сделать выборку быстрее.
 
 ## tarantool + vinyl
 
@@ -232,46 +155,46 @@ Percentage of the requests served within a certain time (ms)
 Запись
 
 ```
-ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/item/5/locations
+ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/random_item/locations
 ...
 Server Software:
 Server Hostname:        127.0.0.1
 Server Port:            8080
 
-Document Path:          /item/5/locations
+Document Path:          /random_item/locations
 Document Length:        9 bytes
 
-Concurrency Level:      200
-Time taken for tests:   8.328 seconds
+Concurrency Level:      100
+Time taken for tests:   3.037 seconds
 Complete requests:      2000
 Failed requests:        0
 Total transferred:      250000 bytes
-Total body sent:        386000
+Total body sent:        396000
 HTML transferred:       18000 bytes
-Requests per second:    240.14 [#/sec] (mean)
-Time per request:       832.848 [ms] (mean)
-Time per request:       4.164 [ms] (mean, across all concurrent requests)
-Transfer rate:          29.31 [Kbytes/sec] received
-                        45.26 kb/s sent
-                        74.57 kb/s total
+Requests per second:    658.51 [#/sec] (mean)
+Time per request:       151.859 [ms] (mean)
+Time per request:       1.519 [ms] (mean, across all concurrent requests)
+Transfer rate:          80.38 [Kbytes/sec] received
+                        127.33 kb/s sent
+                        207.71 kb/s total
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:        0    0   0.5      0       1
-Processing:    67  786 137.7    824     933
-Waiting:       61  786 137.8    824     932
-Total:         67  787 137.7    825     933
+Connect:        0    0   0.5      0       2
+Processing:     5  147 239.9     73    2696
+Waiting:        5  146 239.9     72    2696
+Total:          6  147 239.9     73    2696
 
 Percentage of the requests served within a certain time (ms)
-  50%    825
-  66%    832
-  75%    837
-  80%    839
-  90%    849
-  95%    900
-  98%    926
-  99%    930
- 100%    933 (longest request)
+  50%     73
+  66%    122
+  75%    166
+  80%    203
+  90%    304
+  95%    478
+  98%    962
+  99%   1185
+ 100%   2696 (longest request)
 ```
 
 postgres
@@ -279,88 +202,89 @@ postgres
 Чтение без кеша
 
 ```
-ab -k -c 100 -n 2000 127.0.0.1:8080/item/5/locations
+ab -k -c 100 -n 2000 127.0.0.1:8080/random_item/locations
 ...
 Server Software:
 Server Hostname:        127.0.0.1
 Server Port:            8080
 
-Document Path:          /item/5/locations
+Document Path:          /random_item/locations
 Document Length:        2573 bytes
 
 Concurrency Level:      100
-Time taken for tests:   1.315 seconds
+Time taken for tests:   1.339 seconds
 Complete requests:      2000
 Failed requests:        0
 Keep-Alive requests:    0
 Total transferred:      5340000 bytes
 HTML transferred:       5146000 bytes
-Requests per second:    1520.82 [#/sec] (mean)
-Time per request:       65.754 [ms] (mean)
-Time per request:       0.658 [ms] (mean, across all concurrent requests)
-Transfer rate:          3965.42 [Kbytes/sec] received
+Requests per second:    1493.57 [#/sec] (mean)
+Time per request:       66.954 [ms] (mean)
+Time per request:       0.670 [ms] (mean, across all concurrent requests)
+Transfer rate:          3894.36 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
 Connect:        0    0   0.5      0       1
-Processing:     4   63  74.0     51     809
-Waiting:        3   56  75.5     34     809
-Total:          4   63  74.0     51     810
+Processing:     5   64  90.8     36     782
+Waiting:        3   60  91.2     31     782
+Total:          6   64  90.8     36     783
 
 Percentage of the requests served within a certain time (ms)
-  50%     51
-  66%     58
-  75%     63
-  80%     73
-  90%    120
-  95%    187
-  98%    300
-  99%    428
- 100%    810 (longest request)
+  50%     36
+  66%     51
+  75%     68
+  80%     83
+  90%    130
+  95%    193
+  98%    438
+  99%    550
+ 100%    783 (longest request)
 ```
 
 Запись без кеша
 
 ```
-ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/item/5/locations
+ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/random_item/locations
+
 Server Software:
 Server Hostname:        127.0.0.1
 Server Port:            8080
 
-Document Path:          /item/5/locations
+Document Path:          /random_item/locations
 Document Length:        9 bytes
 
-Concurrency Level:      200
-Time taken for tests:   7.192 seconds
+Concurrency Level:      100
+Time taken for tests:   3.216 seconds
 Complete requests:      2000
 Failed requests:        0
 Total transferred:      250000 bytes
-Total body sent:        386000
+Total body sent:        396000
 HTML transferred:       18000 bytes
-Requests per second:    278.07 [#/sec] (mean)
-Time per request:       719.241 [ms] (mean)
-Time per request:       3.596 [ms] (mean, across all concurrent requests)
-Transfer rate:          33.94 [Kbytes/sec] received
-                        52.41 kb/s sent
-                        86.35 kb/s total
+Requests per second:    621.85 [#/sec] (mean)
+Time per request:       160.809 [ms] (mean)
+Time per request:       1.608 [ms] (mean, across all concurrent requests)
+Transfer rate:          75.91 [Kbytes/sec] received
+                        120.24 kb/s sent
+                        196.15 kb/s total
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:        0    0   0.5      0       1
-Processing:    94  678 145.7    724     760
-Waiting:       81  677 146.1    724     759
-Total:         95  678 145.7    724     760
+Connect:        0    1  11.2      0     501
+Processing:     5  131 215.6     59    2505
+Waiting:        4  131 215.6     59    2505
+Total:          5  132 215.8     60    2505
 
 Percentage of the requests served within a certain time (ms)
-  50%    724
-  66%    730
-  75%    736
-  80%    737
-  90%    742
-  95%    748
-  98%    753
-  99%    754
- 100%    760 (longest request)
+  50%     60
+  66%    106
+  75%    146
+  80%    179
+  90%    290
+  95%    491
+  98%    923
+  99%   1168
+ 100%   2505 (longest request)
 ```
 
 postgres + redis (persistence)

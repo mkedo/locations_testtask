@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"testtask/store"
 	"time"
 )
@@ -28,10 +29,13 @@ func handlerWithItemId(handler itemHandler) http.Handler {
 	})
 }
 
+var itemRandom = rand.New(rand.NewSource(time.Now().UnixNano()))
+var randomLock = sync.Mutex{}
 func handlerWithRandomId(handler itemHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var itemRandom = rand.New(rand.NewSource(time.Now().UnixNano()))
-		itemId := itemRandom.Int63n(2000)
+		randomLock.Lock()
+		itemId := itemRandom.Int63n(200000)
+		randomLock.Unlock()
 		handler(w, r, itemId)
 	})
 }
@@ -68,6 +72,7 @@ func getItemLocationsHandler(itemLocations store.ItemLocations) itemHandler {
 			http.Error(w, "Couldn't get locations", http.StatusInternalServerError)
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(locations)
 	})
 }

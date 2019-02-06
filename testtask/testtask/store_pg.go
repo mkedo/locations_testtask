@@ -9,7 +9,6 @@ import (
 	"github.com/lib/pq"
 	"log"
 	"strings"
-	"sync"
 	"testtask/store"
 	"time"
 )
@@ -17,16 +16,14 @@ import (
 const dbSchema = "testtask"
 
 type PgStore struct {
-	db          *sql.DB
-	insertMutex *sync.Mutex
+	db *sql.DB
 }
 
 // Хранилище в БД postgres.
 // Адреса и связь с объявлениями хранятся в самой БД.
 func NewPgStore(db *sql.DB) *PgStore {
 	return &PgStore{
-		db:          db,
-		insertMutex: &sync.Mutex{},
+		db: db,
 	}
 }
 
@@ -62,10 +59,7 @@ func (s *PgStore) PutContext(ctx context.Context, itemId store.ItemId, locationI
 		pq.QuoteIdentifier(dbSchema),
 		pq.QuoteIdentifier("item_id"))
 
-	// записывам однопоточно, чтобы избежать serialize error
-	s.insertMutex.Lock()
-	defer s.insertMutex.Unlock()
-	err := retryOnSerializeError(3, func() error {
+	err := retryOnSerializeError(100, func() error {
 		return transact(s.db, func(tx *sql.Tx) error {
 			_, err := tx.Exec(deleteSql, itemId)
 			if err != nil {
@@ -82,9 +76,13 @@ func (s *PgStore) PutContext(ctx context.Context, itemId store.ItemId, locationI
 			return nil
 		})
 	})
+	if err != nil {
+		log.Println(itemId, err)
+	}
 	return err
 }
 
+// Выполняет запрос повторно, не более maxRetry раз, в случае serialization_failure.
 func retryOnSerializeError(maxRetry int, query func() error) error {
 	if maxRetry <= 0 {
 		panic("maxRetry must be positive non-zero integer")
@@ -95,6 +93,7 @@ func retryOnSerializeError(maxRetry int, query func() error) error {
 		if err != nil {
 			if pqerr, ok := err.(*pq.Error); ok {
 				if pqerr.Code.Name() == "serialization_failure" {
+					// time.Sleep(10 * time.Millisecond)
 					continue
 				} else {
 					return err
