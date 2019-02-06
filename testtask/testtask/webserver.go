@@ -5,41 +5,45 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"testtask/store"
+	"time"
 )
 
-func findLocationHandler() http.Handler {
+type itemHandler func(w http.ResponseWriter, r *http.Request, itemId int64)
+
+func handlerWithItemId(handler itemHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "To be implemented", http.StatusNotFound)
+		vars := mux.Vars(r)
+		itemIdStr := vars["ItemId"]
+		itemId, err := strconv.ParseInt(itemIdStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Wrong ItemId format", http.StatusBadRequest)
+		} else {
+			handler(w, r, itemId)
+		}
 	})
 }
-// Парсит параметр с id объявления.
-func getItemId(r *http.Request) (int64, error) {
-	vars := mux.Vars(r)
-	itemIdStr := vars["ItemId"]
-	itemId, err := strconv.ParseInt(itemIdStr, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return itemId, nil
+
+func handlerWithRandomId(handler itemHandler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var itemRandom = rand.New(rand.NewSource(time.Now().UnixNano()))
+		itemId := itemRandom.Int63n(2000)
+		handler(w, r, itemId)
+	})
 }
 
-func putItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
+func putItemLocationsHandler(itemLocations store.ItemLocations) itemHandler {
 	type putItemLocationRequest struct {
 		LocationIds []int64
 	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		itemId, err := getItemId(r)
-		if err != nil {
-			http.Error(w, "Wrong ItemId format", http.StatusBadRequest)
-			return
-		}
+	return itemHandler(func(w http.ResponseWriter, r *http.Request, itemId int64) {
 		var request putItemLocationRequest
 
-		err = json.NewDecoder(r.Body).Decode(&request)
+		err := json.NewDecoder(r.Body).Decode(&request)
 		if err != nil || itemId == 0 {
 			http.Error(w, "Wrong request format", http.StatusBadRequest)
 			return
@@ -56,13 +60,8 @@ func putItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
 	})
 }
 
-func getItemLocationsHandler(itemLocations store.ItemLocations) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		itemId, err := getItemId(r)
-		if err != nil {
-			http.Error(w, "Wrong ItemId format", http.StatusBadRequest)
-			return
-		}
+func getItemLocationsHandler(itemLocations store.ItemLocations) itemHandler {
+	return itemHandler(func(w http.ResponseWriter, r *http.Request, itemId int64) {
 		locations, err := itemLocations.GetContext(r.Context(), itemId)
 		if err != nil {
 			log.Println(err)
@@ -82,9 +81,13 @@ func ServeStore(itemLocations store.ItemLocations) error {
 	addr := fmt.Sprintf(":%s", port)
 
 	r := mux.NewRouter()
-	r.Handle("/item/{ItemId}/locations", getItemLocationsHandler(itemLocations)).Methods("GET")
-	r.Handle("/item/{ItemId}/locations", putItemLocationsHandler(itemLocations)).Methods("POST")
-	//r.Handle("/findLocation", findLocationHandler()).Methods("GET")
+	r.Handle("/item/{ItemId}/locations", handlerWithItemId(getItemLocationsHandler(itemLocations))).Methods("GET")
+	r.Handle("/item/{ItemId}/locations", handlerWithItemId(putItemLocationsHandler(itemLocations))).Methods("POST")
+
+	// для теста
+	r.Handle("/random_item/locations", handlerWithRandomId(getItemLocationsHandler(itemLocations))).Methods("GET")
+	r.Handle("/random_item/locations", handlerWithRandomId(putItemLocationsHandler(itemLocations))).Methods("POST")
+
 	log.Printf("Serving at %s\n", addr)
 	return http.ListenAndServe(addr, r)
 }
