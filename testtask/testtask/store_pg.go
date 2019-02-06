@@ -63,24 +63,48 @@ func (s *PgStore) PutContext(ctx context.Context, itemId store.ItemId, locationI
 		pq.QuoteIdentifier("item_id"))
 
 	// записывам однопоточно, чтобы избежать serialize error
-	// + это дает равномерную нагрузку
 	s.insertMutex.Lock()
 	defer s.insertMutex.Unlock()
-	return transact(s.db, func(tx *sql.Tx) error {
-		_, err := tx.Exec(deleteSql, itemId)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-		if hasInsert {
-			_, err = tx.Exec(insertSql, valueArgs...)
+	err := retryOnSerializeError(3, func() error {
+		return transact(s.db, func(tx *sql.Tx) error {
+			_, err := tx.Exec(deleteSql, itemId)
 			if err != nil {
 				log.Println(err)
 				return err
 			}
-		}
-		return nil
+			if hasInsert {
+				_, err = tx.Exec(insertSql, valueArgs...)
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+			}
+			return nil
+		})
 	})
+	return err
+}
+
+func retryOnSerializeError(maxRetry int, query func() error) error {
+	if maxRetry <= 0 {
+		panic("maxRetry must be positive non-zero integer")
+	}
+	var err error
+	for i := 0; i < maxRetry; i++ {
+		err = query()
+		if err != nil {
+			if pqerr, ok := err.(*pq.Error); ok {
+				if pqerr.Code.Name() == "serialization_failure" {
+					continue
+				} else {
+					return err
+				}
+			}
+			return err
+		}
+		break
+	}
+	return err
 }
 
 func (s *PgStore) Add(ctx context.Context, locations []store.Location) error {
