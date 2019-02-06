@@ -1,6 +1,6 @@
 | Архитектура | Чтение rps (99%) | Запись rps (99%) |
 |---|---|----|
-|tarantool + vinyl | 1892 (57ms) | 1890 (56ms) | 
+|tarantool + vinyl | 3490 (50ms) | 1844 (84ms) | 
 |postgres + redis (cache) | 1850 (59ms) | 658 (1185ms) |
 |postgres (no cache) | 1493 (550ms) | 621 (1168ms) |
 |postgres + redis (persistence) | 1037 (262ms) | 1904 (61ms) |
@@ -21,89 +21,90 @@
 Чтение
 
 ```
-ab -k -c 100 -n 2000 127.0.0.1:8080/item/5/locations
+ab -k -c 100 -n 2000 127.0.0.1:8080/random_item/locations
 ...
 Server Software:
 Server Hostname:        127.0.0.1
 Server Port:            8080
 
-Document Path:          /item/5/locations
-Document Length:        2448 bytes
+Document Path:          /random_item/locations
+Document Length:        390 bytes
 
 Concurrency Level:      100
-Time taken for tests:   1.057 seconds
+Time taken for tests:   0.573 seconds
 Complete requests:      2000
-Failed requests:        0
-Keep-Alive requests:    0
-Total transferred:      5090000 bytes
-HTML transferred:       4896000 bytes
-Requests per second:    1892.04 [#/sec] (mean)
-Time per request:       52.853 [ms] (mean)
-Time per request:       0.529 [ms] (mean, across all concurrent requests)
-Transfer rate:          4702.38 [Kbytes/sec] received
+Failed requests:        1998
+   (Connect: 0, Receive: 0, Length: 1998, Exceptions: 0)
+Keep-Alive requests:    1330
+Total transferred:      3277935 bytes
+HTML transferred:       3024055 bytes
+Requests per second:    3490.20 [#/sec] (mean)
+Time per request:       28.652 [ms] (mean)
+Time per request:       0.287 [ms] (mean, across all concurrent requests)
+Transfer rate:          5586.25 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:        0    0   0.5      0       1
-Processing:     9   51   6.6     52      57
-Waiting:        1   30  14.3     30      56
-Total:          9   51   6.6     52      57
+Connect:        0    0   0.3      0       1
+Processing:     4   27  10.6     27      54
+Waiting:        4   22   7.5     21      46
+Total:          5   27  10.6     27      54
 
 Percentage of the requests served within a certain time (ms)
-  50%     52
-  66%     53
-  75%     53
-  80%     53
-  90%     54
-  95%     56
-  98%     56
-  99%     57
- 100%     57 (longest request)
+  50%     27
+  66%     32
+  75%     34
+  80%     36
+  90%     43
+  95%     46
+  98%     48
+  99%     50
+ 100%     54 (longest request)
 ```
 
 Запись
 
 ```
-ab -T application/json -p post.req -c 100 -n 2000 127.0.0.1:8080/item/5/locations
+ab -T application/json -p post.req -c 150 -n 2000 127.0.0.1:8080/random_item/locations
 ...
 Server Software:
 Server Hostname:        127.0.0.1
 Server Port:            8080
 
-Document Path:          /item/5/locations
+Document Path:          /random_item/locations
 Document Length:        9 bytes
 
-Concurrency Level:      100
-Time taken for tests:   1.058 seconds
+Concurrency Level:      150
+Time taken for tests:   1.084 seconds
 Complete requests:      2000
 Failed requests:        0
 Total transferred:      250000 bytes
-Total body sent:        416000
+Total body sent:        396000
 HTML transferred:       18000 bytes
-Requests per second:    1890.25 [#/sec] (mean)
-Time per request:       52.903 [ms] (mean)
-Time per request:       0.529 [ms] (mean, across all concurrent requests)
-Transfer rate:          230.74 [Kbytes/sec] received
-                        383.96 kb/s sent
-                        614.70 kb/s total
+Requests per second:    1844.91 [#/sec] (mean)
+Time per request:       81.305 [ms] (mean)
+Time per request:       0.542 [ms] (mean, across all concurrent requests)
+Transfer rate:          225.21 [Kbytes/sec] received
+                        356.73 kb/s sent
+                        581.94 kb/s total
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
 Connect:        0    0   0.5      0       1
-Processing:     2   51   6.6     52      56
-Waiting:        1   29  14.7     29      56
-Total:          2   52   6.6     52      56
+Processing:     3   78  12.2     81      85
+Waiting:        1   43  22.9     42      85
+Total:          3   78  12.2     81      85
 
 Percentage of the requests served within a certain time (ms)
-  50%     52
-  66%     53
-  75%     54
-  80%     54
-  90%     55
-  95%     55
-  98%     56
-  99%     56
- 100%     56 (longest request)
+  50%     81
+  66%     82
+  75%     82
+  80%     83
+  90%     84
+  95%     84
+  98%     85
+  99%     85
+ 100%     85 (longest request)
 ```
 
 
