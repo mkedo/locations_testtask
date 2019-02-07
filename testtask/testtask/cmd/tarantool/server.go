@@ -11,5 +11,7 @@ func main() {
 	client := connection.GetTntConnection()
 	defer client.Close()
 	itemLocations := testtask.NewTntStore(client)
-	log.Fatal(testtask.ServeStore(itemLocations))
+	if err := testtask.ServeStore(itemLocations); err != nil {
+		log.Fatal(err)
+	}
 }

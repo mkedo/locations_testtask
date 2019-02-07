@@ -23,5 +23,7 @@ func main() {
 	})
 	//itemLocations := pgRepo
 
-	log.Fatal(testtask.ServeStore(itemLocations))
+	if err := testtask.ServeStore(itemLocations); err != nil {
+		log.Fatal(err)
+	}
 }

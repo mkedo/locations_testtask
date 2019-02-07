@@ -1,6 +1,7 @@
 package testtask
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -8,8 +9,10 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"testtask/store"
 	"time"
 )
@@ -31,6 +34,7 @@ func handlerWithItemId(handler itemHandler) http.Handler {
 
 var itemRandom = rand.New(rand.NewSource(time.Now().UnixNano()))
 var randomLock = sync.Mutex{}
+
 func handlerWithRandomId(handler itemHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		randomLock.Lock()
@@ -93,6 +97,38 @@ func ServeStore(itemLocations store.ItemLocations) error {
 	r.Handle("/random_item/locations", handlerWithRandomId(getItemLocationsHandler(itemLocations))).Methods("GET")
 	r.Handle("/random_item/locations", handlerWithRandomId(putItemLocationsHandler(itemLocations))).Methods("POST")
 
+	srv := http.Server{
+		Addr:    addr,
+		Handler: r,
+	}
+
+	// graceful shutdown
+	waitForShutdownChan := make(chan struct{})
+	go func() {
+		sigInt := make(chan os.Signal, 1)
+		defer close(sigInt)
+		signal.Notify(sigInt, os.Interrupt, syscall.SIGTERM)
+		<-sigInt
+		signal.Stop(sigInt)
+
+		log.Println("Shutdown requested")
+		// 3 секунды должно хватить всем
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("HTTP server Shutdown: %v\n", err)
+		}
+		close(waitForShutdownChan)
+	}()
+
 	log.Printf("Serving at %s\n", addr)
-	return http.ListenAndServe(addr, r)
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Printf("HTTP server ListenAndServe: %v\n", err)
+		return err
+	} else {
+		<-waitForShutdownChan
+		log.Println("Web server is down")
+		return nil
+	}
 }
